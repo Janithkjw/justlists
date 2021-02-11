@@ -1,0 +1,20 @@
+{
+    "name":"My new",
+    "tokens":[
+        {
+            "symbol":"KLV",
+            "address":"TVj7RNVHy6thbM7BWdSe9G6gXwKhjhdNZS",
+            "chainId":1,
+            "decimals":10,
+            "name":"Klever",
+            "logoURI":"https://coin.top/production/upload/logo/TVj7RNVHy6thbM7BWdSe9G6gXwKhjhdNZS.png?t=159360305516"
+        },
+    ],
+    "logoURI":"http://cdn.onlinewebfonts.com/svg/img_170379.png",
+    "version":{
+        "patch":1,
+        "major":0,
+        "minor":0
+    },
+    "timestamp":1611147166000
+}
