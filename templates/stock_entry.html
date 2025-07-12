@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Entry - Workshop Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-plus-circle"></i> New Stock Entry / Refill Stock</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="invoice_order_no" class="form-label">Invoice/Order No</label>
+                                <input type="text" class="form-control" id="invoice_order_no" name="invoice_order_no" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="model_number" class="form-label">Model Number</label>
+                        <input type="text" class="form-control" id="model_number" name="model_number" required 
+                               placeholder="Start typing to search existing items..." autocomplete="off">
+                        <div id="model_suggestions" class="dropdown-menu" style="display: none;"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="item_name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="item_name" name="item_name" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="main_category" class="form-label">Main Category</label>
+                                <select class="form-select" id="main_category" name="main_category" required>
+                                    <option value="">Select Main Category</option>
+                                    <option value="Electrical">Electrical</option>
+                                    <option value="Mechanical">Mechanical</option>
+                                    <option value="Pneumatic">Pneumatic</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="sub_category" class="form-label">Sub Category</label>
+                                <select class="form-select" id="sub_category" name="sub_category" required>
+                                    <option value="">Select Sub Category</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="storage_location_id" class="form-label">Storage Location</label>
+                        <select class="form-select" id="storage_location_id" name="storage_location_id" required>
+                            <option value="">Select Storage Location</option>
+                            {% for location in storage_locations %}
+                            <option value="{{ location.id }}" data-category="{{ location.main_category }}">
+                                {{ location.main_category }} - {{ location.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="low_stock_threshold" class="form-label">Low Stock Threshold</label>
+                                <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="0" value="10" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add/Update Stock
+                    </button>
+                    <a href="{{ url_for('home') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Instructions</h5>
+            </div>
+            <div class="card-body">
+                <h6>Stock Entry Process:</h6>
+                <ol>
+                    <li>Enter the model number (type to search existing items)</li>
+                    <li>If item exists, fields will auto-fill</li>
+                    <li>If new item, fill all required fields</li>
+                    <li>Set appropriate storage location</li>
+                    <li>Enter quantity and low stock threshold</li>
+                    <li>Submit to add/update stock</li>
+                </ol>
+                
+                <h6 class="mt-3">Category Guidelines:</h6>
+                <ul>
+                    <li><strong>Electrical:</strong> PLC, HMI, Sensors, Motors, etc.</li>
+                    <li><strong>Mechanical:</strong> Bearings, Shafts, Chains, etc.</li>
+                    <li><strong>Pneumatic:</strong> Cylinders, Valves, Fittings, etc.</li>
+                    <li><strong>Other:</strong> Miscellaneous items</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Model number search functionality
+    $('#model_number').on('input', function() {
+        var term = $(this).val();
+        if (term.length >= 2) {
+            $.ajax({
+                url: '/api/items/search',
+                data: { term: term },
+                success: function(data) {
+                    var suggestions = $('#model_suggestions');
+                    suggestions.empty();
+                    
+                    if (data.length > 0) {
+                        data.forEach(function(item) {
+                            suggestions.append(
+                                '<a class="dropdown-item" href="#" data-model="' + item.model_number + '">' +
+                                item.model_number + ' - ' + item.name + ' (' + item.category + ')</a>'
+                            );
+                        });
+                        suggestions.show();
+                    } else {
+                        suggestions.hide();
+                    }
+                }
+            });
+        } else {
+            $('#model_suggestions').hide();
+        }
+    });
+    
+    // Handle suggestion selection
+    $(document).on('click', '#model_suggestions a', function(e) {
+        e.preventDefault();
+        var modelNumber = $(this).data('model');
+        $('#model_number').val(modelNumber);
+        $('#model_suggestions').hide();
+        
+        // Auto-fill fields for existing item
+        $.ajax({
+            url: '/api/item/' + modelNumber,
+            success: function(data) {
+                $('#item_name').val(data.name);
+                $('#main_category').val(data.main_category).trigger('change');
+                $('#sub_category').val(data.sub_category);
+                $('#storage_location_id').val(data.storage_location_id);
+                $('#low_stock_threshold').val(data.low_stock_threshold);
+            }
+        });
+    });
+    
+    // Hide suggestions when clicking outside
+    $(document).click(function(event) {
+        if (!$(event.target).closest('#model_number, #model_suggestions').length) {
+            $('#model_suggestions').hide();
+        }
+    });
+    
+    // Update sub categories based on main category
+    $('#main_category').change(function() {
+        var mainCategory = $(this).val();
+        var subCategorySelect = $('#sub_category');
+        
+        subCategorySelect.empty().append('<option value="">Select Sub Category</option>');
+        
+        var subCategories = {
+            'Electrical': ['PLC and accessories', 'HMI', 'Sensors', 'VFD', 'Servo drivers', 'Induction motors', 'Servo motors', 'Stepper motors'],
+            'Mechanical': ['Bearings', 'Shafts', 'Key bars', 'Thread bars', 'Chains & sprockets', 'Pipes and Fittings'],
+            'Pneumatic': ['Cylinders', 'Solenoid valves', 'Fittings', 'Tubes'],
+            'Other': ['Miscellaneous']
+        };
+        
+        if (subCategories[mainCategory]) {
+            subCategories[mainCategory].forEach(function(subCat) {
+                subCategorySelect.append('<option value="' + subCat + '">' + subCat + '</option>');
+            });
+        }
+        
+        // Filter storage locations
+        filterStorageLocations(mainCategory);
+    });
+    
+    function filterStorageLocations(category) {
+        var storageSelect = $('#storage_location_id');
+        storageSelect.find('option').each(function() {
+            var optionCategory = $(this).data('category');
+            if (optionCategory === category || $(this).val() === '') {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+        storageSelect.val('');
+    }
+});
+</script>
+{% endblock %}

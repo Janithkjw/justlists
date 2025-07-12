@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Workshop Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-warehouse"></i> Workshop Inventory Management System</h2>
+            </div>
+            <div class="card-body">
+                <h4>Welcome to your Workshop Inventory Management System!</h4>
+                <p class="text-muted">Manage your electrical, mechanical, pneumatic, and other workshop items efficiently.</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h5>Stock Check</h5>
+                                        <p class="card-text">Search and view inventory</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-search fa-2x"></i>
+                                    </div>
+                                </div>
+                                <a href="{{ url_for('stock_check') }}" class="btn btn-outline-light btn-sm mt-2">
+                                    <i class="fas fa-arrow-right"></i> Go to Stock Check
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h5>Stock Entry</h5>
+                                        <p class="card-text">Add new items or refill stock</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-plus-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                {% if session.user_id %}
+                                <a href="{{ url_for('stock_entry') }}" class="btn btn-outline-light btn-sm mt-2">
+                                    <i class="fas fa-arrow-right"></i> Go to Stock Entry
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mt-2">
+                                    <i class="fas fa-sign-in-alt"></i> Login Required
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h5>Stock Release</h5>
+                                        <p class="card-text">Release items for projects</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-minus-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                {% if session.user_id %}
+                                <a href="{{ url_for('stock_release') }}" class="btn btn-outline-light btn-sm mt-2">
+                                    <i class="fas fa-arrow-right"></i> Go to Stock Release
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm mt-2">
+                                    <i class="fas fa-sign-in-alt"></i> Login Required
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h5>Activities</h5>
+                                        <p class="card-text">View system activities</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-history fa-2x"></i>
+                                    </div>
+                                </div>
+                                <a href="{{ url_for('activities') }}" class="btn btn-outline-light btn-sm mt-2">
+                                    <i class="fas fa-arrow-right"></i> Go to Activities
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-exclamation-triangle"></i> Critical Notifications</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_items %}
+                <h6>Low Stock Items:</h6>
+                <ul class="list-group list-group-flush">
+                    {% for item in low_stock_items %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ item.name }}</strong><br>
+                            <small class="text-muted">{{ item.model_number }}</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">{{ item.current_stock }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <a href="{{ url_for('notifications') }}" class="btn btn-outline-danger btn-sm mt-2">
+                    <i class="fas fa-bell"></i> View All Notifications
+                </a>
+                {% else %}
+                <p class="text-success"><i class="fas fa-check-circle"></i> No critical notifications at this time.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <h5><i class="fas fa-clock"></i> Recent Activities</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_activities %}
+                <ul class="list-group list-group-flush">
+                    {% for activity in recent_activities %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <small>{{ activity.action }}</small>
+                            <small class="text-muted">{{ activity.timestamp.strftime('%m-%d %H:%M') }}</small>
+                        </div>
+                        <small class="text-muted">by {{ activity.user.username }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <a href="{{ url_for('activities') }}" class="btn btn-outline-secondary btn-sm mt-2">
+                    <i class="fas fa-history"></i> View All Activities
+                </a>
+                {% else %}
+                <p class="text-muted">No recent activities to display.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

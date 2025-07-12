@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Release - Workshop Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-minus-circle"></i> Stock Release for Projects/Sales</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Date</label>
+                                <input type="date" class="form-control" id="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="project_name" class="form-label">Project/Sale Name</label>
+                                <input type="text" class="form-control" id="project_name" name="project_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="model_number" class="form-label">Model Number</label>
+                        <select class="form-select" id="model_number" name="model_number" required>
+                            <option value="">Select Model Number</option>
+                            {% for item in items %}
+                            <option value="{{ item.model_number }}" data-name="{{ item.name }}" data-stock="{{ item.current_stock }}" data-location="{{ item.storage_location.name }}">
+                                {{ item.model_number }} - {{ item.name }} (Stock: {{ item.current_stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="item_name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="item_name" name="item_name" readonly>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                                <div class="form-text">Available Stock: <span id="available_stock">0</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="storage_location" class="form-label">Storage Location</label>
+                                <input type="text" class="form-control" id="storage_location" name="storage_location" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="authorized_person" class="form-label">Authorized Person</label>
+                                <input type="text" class="form-control" id="authorized_person" name="authorized_person" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="receiver" class="form-label">Receiver</label>
+                                <input type="text" class="form-control" id="receiver" name="receiver" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning" id="release_btn" disabled>
+                        <i class="fas fa-minus"></i> Release Stock
+                    </button>
+                    <a href="{{ url_for('home') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Instructions</h5>
+            </div>
+            <div class="card-body">
+                <h6>Stock Release Process:</h6>
+                <ol>
+                    <li>Select the date</li>
+                    <li>Enter project/sale name</li>
+                    <li>Select model number from existing items</li>
+                    <li>Enter quantity (must not exceed available stock)</li>
+                    <li>Enter authorized person and receiver details</li>
+                    <li>Submit to release stock</li>
+                </ol>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Note:</strong> You can only release items that are already in stock. The system will prevent releasing more items than available.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-eye"></i> Item Preview</h5>
+            </div>
+            <div class="card-body" id="item_preview">
+                <p class="text-muted">Select an item to see preview</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#model_number').change(function() {
+        var selectedOption = $(this).find('option:selected');
+        var itemName = selectedOption.data('name');
+        var availableStock = selectedOption.data('stock');
+        var storageLocation = selectedOption.data('location');
+        
+        if (itemName) {
+            $('#item_name').val(itemName);
+            $('#available_stock').text(availableStock);
+            $('#storage_location').val(storageLocation);
+            $('#quantity').attr('max', availableStock);
+            
+            // Update item preview
+            $('#item_preview').html(
+                '<h6>' + itemName + '</h6>' +
+                '<p><strong>Model:</strong> ' + selectedOption.val() + '</p>' +
+                '<p><strong>Location:</strong> ' + storageLocation + '</p>' +
+                '<p><strong>Available Stock:</strong> ' + availableStock + '</p>'
+            );
+            
+            validateQuantity();
+        } else {
+            $('#item_name').val('');
+            $('#available_stock').text('0');
+            $('#storage_location').val('');
+            $('#quantity').attr('max', '');
+            $('#item_preview').html('<p class="text-muted">Select an item to see preview</p>');
+            $('#release_btn').prop('disabled', true);
+        }
+    });
+    
+    $('#quantity').on('input', function() {
+        validateQuantity();
+    });
+    
+    function validateQuantity() {
+        var quantity = parseInt($('#quantity').val()) || 0;
+        var availableStock = parseInt($('#available_stock').text()) || 0;
+        var modelNumber = $('#model_number').val();
+        
+        if (modelNumber && quantity > 0 && quantity <= availableStock) {
+            $('#release_btn').prop('disabled', false);
+            $('#quantity').removeClass('is-invalid');
+        } else {
+            $('#release_btn').prop('disabled', true);
+            if (quantity > availableStock) {
+                $('#quantity').addClass('is-invalid');
+            } else {
+                $('#quantity').removeClass('is-invalid');
+            }
+        }
+    }
+    
+    // Form validation
+    $('form').on('submit', function(e) {
+        var quantity = parseInt($('#quantity').val()) || 0;
+        var availableStock = parseInt($('#available_stock').text()) || 0;
+        
+        if (quantity > availableStock) {
+            e.preventDefault();
+            alert('Cannot release more items than available in stock!');
+        }
+    });
+});
+</script>
+{% endblock %}

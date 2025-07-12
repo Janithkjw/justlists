@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Check - Workshop Inventory Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-search"></i> Stock Availability Check</h3>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <label for="search" class="form-label">Search by Model Number or Name</label>
+                <input type="text" class="form-control" id="search" name="search" value="{{ search_term }}" placeholder="Enter model number or item name">
+            </div>
+            <div class="col-md-4">
+                <label for="category" class="form-label">Filter by Category</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary d-block w-100">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% for item in items %}
+    <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ item.name }}</h6>
+                <span class="badge bg-{% if item.current_stock <= item.low_stock_threshold %}danger{% elif item.current_stock <= item.low_stock_threshold * 2 %}warning{% else %}success{% endif %}">
+                    {{ item.current_stock }} units
+                </span>
+            </div>
+            <div class="card-body">
+                {% if item.preview_image %}
+                <img src="{{ url_for('static', filename='images/' + item.preview_image) }}" class="img-fluid mb-3" alt="{{ item.name }}">
+                {% else %}
+                <div class="text-center mb-3">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                    <p class="text-muted">No image</p>
+                </div>
+                {% endif %}
+                
+                <p><strong>Model:</strong> {{ item.model_number }}</p>
+                <p><strong>Category:</strong> {{ item.main_category }} - {{ item.sub_category }}</p>
+                <p><strong>Location:</strong> {{ item.storage_location.name }}</p>
+                <p><strong>Low Stock Alert:</strong> {{ item.low_stock_threshold }} units</p>
+                
+                {% if item.current_stock <= item.low_stock_threshold %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Low Stock!</strong> Only {{ item.current_stock }} units remaining.
+                </div>
+                {% elif item.current_stock <= item.low_stock_threshold * 2 %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <strong>Warning:</strong> Stock level is getting low.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            {% if search_term or selected_category %}
+            No items found matching your search criteria.
+            {% else %}
+            No items in inventory yet. Add some items from the Stock Entry page.
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if items %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> Quick Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-primary">{{ items|length }}</h4>
+                            <p class="text-muted">Items Found</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success">{{ items|selectattr('current_stock', '>', 'low_stock_threshold')|list|length }}</h4>
+                            <p class="text-muted">Items in Stock</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning">{{ items|selectattr('current_stock', '<=', 'low_stock_threshold')|selectattr('current_stock', '>', 0)|list|length }}</h4>
+                            <p class="text-muted">Low Stock Items</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-danger">{{ items|selectattr('current_stock', '==', 0)|list|length }}</h4>
+                            <p class="text-muted">Out of Stock</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if session.user_id %}
+<div class="mt-3">
+    <a href="{{ url_for('export_data', table='items') }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel"></i> Export to Excel
+    </a>
+</div>
+{% endif %}
+{% endblock %}
